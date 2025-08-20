@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Eliana’s WA Driver's Test – Practice Quiz</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>body {-webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;} .img-shadow {box-shadow:0 10px 25px rgba(0,0,0,.15);} </style>
+</head>
+<body class="bg-pink-50">
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel">
+    const { useMemo, useState, useEffect } = React;
+    // === Image config ===
+    const YES_COUNT = 78;        // Yes_1.jpg ... Yes_78.jpg
+    const NO_COUNT  = 47;        // No_1.jpg ... No_47.jpg
+    const YES_FOLDER = "yes";
+    const NO_FOLDER  = "no";
+    // =====================
+
+    /** @typedef {{id:string,category:string,question:string,choices:string[],correctIndex:number,explanation?:string}} Question */
+    /** @type {Question[]} */
+    const QUESTION_BANK = [
+      { id: "sign-1", category: "Road Signs", question: "What does a flashing yellow light mean?",
+        choices: ["Stop completely, then proceed when clear","Proceed with caution; slow down and be prepared to yield","It’s a protected left-turn signal","Traffic signal is about to turn red; stop immediately"],
+        correctIndex: 1, explanation: "A flashing yellow means proceed with caution. Slow down and prepare to yield if needed." },
+      { id: "sign-2", category: "Road Signs", question: "A pentagon-shaped sign indicates:",
+        choices: ["Railroad crossing","School zone or school crossing","No passing zone","Work zone"],
+        correctIndex: 1, explanation: "Pentagon signs mark school zones and crossings." },
+      { id: "sign-3", category: "Road Signs", question: "A downward-pointing triangle sign means:",
+        choices: ["Yield","Stop","Do Not Enter","Warning"],
+        correctIndex: 0, explanation: "Inverted triangle = YIELD." },
+      { id: "sign-4", category: "Road Signs", question: "A round yellow sign with a black X and two Rs indicates:",
+        choices: ["No U-turn","Railroad crossing ahead","Slow moving vehicle","Divided highway begins"],
+        correctIndex: 1, explanation: "Warns of a railroad crossing ahead." },
+      { id: "sign-5", category: "Road Signs", question: "Octagon-shaped signs always mean:",
+        choices: ["Yield","Stop","Do Not Enter","Warning"],
+        correctIndex: 1, explanation: "Octagon = STOP sign universally." },
+      { id: "sign-6", category: "Road Signs", question: "A diamond-shaped sign is used for:",
+        choices: ["Regulatory notices","Warning or caution","School crossings","Railroad crossings"],
+        correctIndex: 1, explanation: "Diamond signs are warnings of hazards or changes ahead." },
+      { id: "rules-1", category: "Rules", question: "At a four-way stop, two vehicles arrive at the same time. Who goes first?",
+        choices: ["The larger vehicle","The vehicle on the left","The vehicle on the right","The one going straight"],
+        correctIndex: 2, explanation: "Driver on the right has the right-of-way." },
+      { id: "rules-2", category: "Rules", question: "When must headlights be used in Washington?",
+        choices: ["Only when it's raining","From 30 minutes after sunset to 30 minutes before sunrise, and when visibility is reduced","Only on rural roads","Only on highways"],
+        correctIndex: 1, explanation: "Use headlights during the stated times and when visibility is reduced." },
+      { id: "rules-3", category: "Rules", question: "You approach a stopped school bus with red lights flashing on a two-lane road. You must:",
+        choices: ["Slow to 10 mph and pass carefully","Stop only if children are present","Stop and remain stopped until the lights stop flashing","Proceed if you're traveling opposite the bus"],
+        correctIndex: 2, explanation: "Traffic in both directions must stop on two-lane roads." },
+      { id: "rules-4", category: "Rules", question: "What is Washington’s basic speed law?",
+        choices: ["Never exceed the posted speed limit","Drive at a speed that is reasonable and prudent for conditions","Always match the flow of traffic","Drive 5 mph under the limit in neighborhoods"],
+        correctIndex: 1, explanation: "Adjust speed to road, weather, and traffic conditions." },
+      { id: "rules-5", category: "Rules", question: "You’re at a green light but a pedestrian is still in the crosswalk. You should:",
+        choices: ["Honk and proceed","Creep forward to encourage them","Yield until the crosswalk is clear","Go; pedestrians should hurry"],
+        correctIndex: 2, explanation: "Always yield to pedestrians lawfully within a crosswalk." },
+      { id: "rules-6", category: "Rules", question: "When parking downhill with a curb, wheels should be turned:",
+        choices: ["Toward the curb","Away from the curb","Straight","Doesn’t matter"],
+        correctIndex: 0, explanation: "Turn wheels toward the curb." },
+      { id: "rules-7", category: "Rules", question: "On a highway, the left lane is used for:",
+        choices: ["Passing and faster traffic","Slower traffic","Trucks only","Emergency vehicles only"],
+        correctIndex: 0, explanation: "Left lane is for passing/faster traffic." },
+      { id: "safety-1", category: "Safety", question: "Hand-over-hand steering is used primarily when:",
+        choices: ["Backing straight","Making sharp turns","Cruising on the highway","Parallel parking only"],
+        correctIndex: 1, explanation: "Use for low-speed, sharp turns and quick corrections." },
+      { id: "safety-2", category: "Safety", question: "The three-second rule helps determine:",
+        choices: ["Following distance","Stopping distance","Reaction time","Blind spot size"],
+        correctIndex: 0, explanation: "At least three seconds behind the car ahead." },
+      { id: "safety-3", category: "Safety", question: "If you start to hydroplane, you should:",
+        choices: ["Brake hard and turn sharply","Ease off the accelerator and steer straight","Shift to neutral and turn off the ignition","Speed up to regain traction"],
+        correctIndex: 1, explanation: "Ease off the gas and keep wheels straight." },
+      { id: "safety-4", category: "Safety", question: "When parallel parking on a two-way street, your right-hand wheels should be:",
+        choices: ["Within 12 inches of the curb","At least 24 inches from the curb","Touching the curb","Exactly 6 inches from the curb"],
+        correctIndex: 0, explanation: "Within about a foot from the curb." },
+      { id: "safety-5", category: "Safety", question: "Before changing lanes, the best practice is to:",
+        choices: ["Signal, check mirrors, and look over your shoulder","Signal only","Honk and change lanes","Speed up without signaling"],
+        correctIndex: 0, explanation: "Signal, mirror-check, shoulder check." },
+      { id: "safety-6", category: "Safety", question: "When driving in fog, you should use:",
+        choices: ["High-beam headlights","Low-beam headlights","Parking lights only","Hazard flashers"],
+        correctIndex: 1, explanation: "Use low beams in fog." },
+      { id: "safety-7", category: "Safety", question: "When skidding, the proper action is:",
+        choices: ["Brake hard immediately","Steer in the direction you want the front wheels to go","Turn opposite to skid","Shift to neutral"],
+        correctIndex: 1, explanation: "Steer into the skid to regain control." }
+    ];
+
+    function shuffle(a){a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;}
+    const randInt=(min,max)=>Math.floor(Math.random()*(max-min+1))+min;
+    const yesUrl = n => `./${YES_FOLDER}/Yes_${n}.jpg`;
+    const noUrl  = n => `./${NO_FOLDER}/No_${n}.jpg`;
+
+    function QuizApp(){
+      const [started,setStarted]=useState(false);
+      const [category,setCategory]=useState("All");
+      const [count,setCount]=useState(10);
+      const [instantFeedback,setInstantFeedback]=useState(true);
+      const [current,setCurrent]=useState(0);
+      const [answers,setAnswers]=useState({});
+      const [showResults,setShowResults]=useState(false);
+      const [answerOrderSeed,setAnswerOrderSeed]=useState(0);
+      const [feedbackImg,setFeedbackImg]=useState(null);
+
+      const categories = useMemo(()=>["All",...Array.from(new Set(QUESTION_BANK.map(q=>q.category)))],[]);
+      const filtered = useMemo(()=>{
+        const pool = category==="All" ? QUESTION_BANK : QUESTION_BANK.filter(q=>q.category===category);
+        return shuffle(pool).slice(0, Math.min(count, pool.length));
+      },[category,count,started]);
+      const answerOrderMap = useMemo(()=>{
+        const map={}; filtered.forEach(q=>{ map[q.id]=shuffle(q.choices.map((_,i)=>i)); }); return map;
+      },[filtered,answerOrderSeed]);
+      const currentQ = filtered[current];
+
+      function selectAnswer(choiceIndex){
+        setAnswers(prev=>({...prev,[currentQ.id]:choiceIndex}));
+        const correct = choiceIndex===currentQ.correctIndex;
+        if(correct){ setFeedbackImg({src: yesUrl(randInt(1,YES_COUNT)), alt: "Yes!"}); }
+        else { setFeedbackImg({src: noUrl(randInt(1,NO_COUNT)), alt: "Nope"}); }
+      }
+      function next(){ if(current<filtered.length-1){ setCurrent(c=>c+1); setFeedbackImg(null);} else setShowResults(true); }
+      function prev(){ if(current>0){ setCurrent(c=>c-1); setFeedbackImg(null);} }
+      function restart(){ setStarted(false); setCurrent(0); setAnswers({}); setShowResults(false); setAnswerOrderSeed(x=>x+1); setFeedbackImg(null); }
+
+      // Keyboard shortcuts
+      useEffect(()=>{
+        function handler(e){
+          if(!started||showResults) return;
+          if(["1","2","3","4"].includes(e.key)){
+            const idx=Number(e.key)-1;
+            if(idx<currentQ.choices.length) selectAnswer(answerOrderMap[currentQ.id][idx]);
+          }
+          if(e.key.toLowerCase()==="n") next();
+          if(e.key.toLowerCase()==="b") prev();
+        }
+        window.addEventListener("keydown", handler);
+        return ()=>window.removeEventListener("keydown", handler);
+      },[started,showResults,currentQ,answerOrderMap]);
+
+      return (
+        <div className="min-h-screen p-4 md:p-8">
+          <div className="mx-auto max-w-3xl">
+            <header className="mb-6 flex items-center justify-between">
+              <h1 className="text-2xl md:text-3xl font-bold text-black">Eliana’s WA Driver's Test – Practice Quiz</h1>
+              {/* Banner removed */}
+            </header>
+
+            {!started ? (
+              <StartPanel {...{categories,category,setCategory,count,setCount,instantFeedback,setInstantFeedback,onStart:()=>setStarted(true)}} />
+            ) : !showResults ? (
+              <QuestionCard
+                index={current} total={filtered.length} q={currentQ}
+                chosen={answers[currentQ.id] ?? null}
+                onChoose={selectAnswer} onNext={next} onPrev={prev}
+                instantFeedback={instantFeedback} order={answerOrderMap[currentQ.id]}
+                feedbackImg={feedbackImg}
+              />
+            ) : (
+              <ResultsPanel questions={filtered} answers={answers} score={
+                filtered.reduce((s,q)=> s + ((answers[q.id]===q.correctIndex)?1:0), 0)
+              } onRestart={restart} />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    function StartPanel({categories,category,setCategory,count,setCount,instantFeedback,setInstantFeedback,onStart}){
+      return (
+        <div className="space-y-6">
+          <div className="rounded-2xl bg-white p-5 shadow border border-pink-300">
+            <h2 className="mb-4 text-xl font-semibold text-black">Choose Settings</h2>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-pink-700">Category</label>
+                <select className="rounded-xl border border-pink-400 p-2" value={category} onChange={e=>setCategory(e.target.value)}>
+                  {categories.map(c=> <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-pink-700"># of Questions</label>
+                <input className="rounded-xl border border-pink-400 p-2" type="number" min={5} max={20} value={count} onChange={e=>setCount(Number(e.target.value))} />
+              </div>
+              <div className="flex items-center gap-3">
+                <input id="instant" type="checkbox" className="h-5 w-5 text-pink-600" checked={instantFeedback} onChange={e=>setInstantFeedback(e.target.checked)} />
+                <label htmlFor="instant" className="text-sm text-black">Instant feedback after each question</label>
+              </div>
+            </div>
+            <button onClick={onStart} className="mt-6 rounded-2xl bg-black px-5 py-3 text-white hover:bg-pink-600 hover:text-white">Start Quiz</button>
+          </div>
+          <TipsCard />
+        </div>
+      );
+    }
+
+    function QuestionCard({index,total,q,chosen,onChoose,onNext,onPrev,instantFeedback,order,feedbackImg}){
+      const isAnswered = chosen !== null && chosen !== undefined;
+      const isCorrect = isAnswered ? chosen === q.correctIndex : false;
+      return (
+        <div className="rounded-2xl bg-white p-5 shadow border border-pink-200">
+          <div className="mb-4 flex items-center justify-between">
+            <span className="text-sm text-neutral-500">Question {index + 1} of {total}</span>
+            <span className="text-sm font-medium text-pink-600">{q.category}</span>
+          </div>
+          <h2 className="mb-4 text-xl font-semibold text-black">{q.question}</h2>
+          <div className="space-y-3">
+            {order.map((choiceIdx,i)=>{
+              const isSelected = chosen === choiceIdx;
+              const showCorrect = instantFeedback && isAnswered && choiceIdx === q.correctIndex;
+              const showWrong   = instantFeedback && isSelected && !isCorrect;
+              return (
+                <button key={i} onClick={()=>onChoose(choiceIdx)} className={[
+                    "w-full rounded-xl border p-3 text-left transition",
+                    isSelected ? "border-black bg-pink-50" : "border-neutral-200",
+                    showCorrect ? "bg-green-50 border-green-400" : "",
+                    showWrong ? "bg-red-50 border-red-400" : ""
+                  ].join(" ")}>
+                  <span className="mr-2 font-mono text-sm text-neutral-500">{i+1}.</span> {q.choices[choiceIdx]}
+                </button>
+              );
+            })}
+          </div>
+          {instantFeedback && isAnswered && (
+            <div className={"mt-4 rounded-xl p-3 " + (isCorrect ? "bg-green-50" : "bg-orange-50")}>
+              <p className="text-sm">{isCorrect ? "Correct!" : "Not quite."} {q.explanation && <span>{q.explanation}</span>}</p>
+            </div>
+          )}
+          {isAnswered && feedbackImg && (
+            <div className="mt-4 flex justify-center">
+              <img src={feedbackImg.src} alt={feedbackImg.alt} className="max-h-72 rounded-xl img-shadow object-contain" onError={(e)=>{ e.currentTarget.style.display='none'; }} />
+            </div>
+          )}
+          <div className="mt-6 flex items-center justify-between">
+            <button onClick={onPrev} disabled={index===0} className="rounded-xl border px-4 py-2 border-pink-400 disabled:opacity-40">Back</button>
+            <button onClick={onNext} className="rounded-xl bg-black px-5 py-2 text-white hover:bg-pink-600">{index===total-1 ? "Finish" : "Next"}</button>
+          </div>
+        </div>
+      );
+    }
+
+    function ResultsPanel({questions,answers,score,onRestart}){
+      const percent = Math.round((score / questions.length) * 100);
+      return (
+        <div className="space-y-6">
+          <div className="rounded-2xl bg-white p-6 shadow border border-pink-300">
+            <h2 className="text-xl font-semibold text-black">Results for Eliana</h2>
+            <p className="mt-2 text-neutral-700">You scored <b>{score}</b> / {questions.length} ({percent}%).</p>
+            <button onClick={onRestart} className="mt-4 rounded-2xl bg-black px-5 py-2 text-white hover:bg-pink-600">Try Again</button>
+          </div>
+        </div>
+      );
+    }
+
+    function TipsCard(){
+      return (
+        <div className="rounded-2xl border border-pink-200 bg-white p-5">
+          <h3 className="mb-2 text-lg font-semibold text-black">Study Tips for Eliana</h3>
+          <ul className="list-disc pl-6 text-sm text-neutral-700">
+            <li>Do 10–15 questions at a time. Take short breaks.</li>
+            <li>Mix categories: Road Signs, Rules, Safety.</li>
+            <li>Say answers out loud to lock in memory.</li>
+            <li>Use real-world drives to spot signs and apply rules.</li>
+          </ul>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<QuizApp />);
+  </script>
+</body>
+</html>
