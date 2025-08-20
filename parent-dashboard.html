@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Parent Dashboard - Eliana's Study Progress</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #34495e, #95a5a6);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border-left: 5px solid #3498db;
+        }
+
+        .card.success {
+            border-left-color: #27ae60;
+        }
+
+        .card.warning {
+            border-left-color: #f39c12;
+        }
+
+        .card.info {
+            border-left-color: #9b59b6;
+        }
+
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .stat-large {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #3498db;
+            margin-bottom: 5px;
+        }
+
+        .stat-medium {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #27ae60;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #ecf0f1;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            transition: width 0.3s ease;
+        }
+
+        .session-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .session-item {
+            background: #f8f9fa;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            border-left: 3px solid #3498db;
+        }
+
+        .session-date {
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .session-details {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #95a5a6;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(52, 152, 219, 0.3);
+        }
+
+        .sheets-btn {
+            background: linear-gradient(135deg, #27ae60, #2ecc71);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.3s ease;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .sheets-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(39, 174, 96, 0.3);
+        }
+
+        .category-progress {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .category-item {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .category-score {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #27ae60;
+        }
+
+        .study-streak {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 10px 0;
+        }
+
+        .streak-emoji {
+            font-size: 2em;
+        }
+
+        .alert {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+
+        .google-sheets-link {
+            background: #f8f9fa;
+            border: 2px solid #27ae60;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Parent Dashboard</h1>
+            <p>Monitor Eliana's Driving Test Preparation Progress</p>
+            <button class="refresh-btn" onclick="loadDashboard()">🔄 Refresh Local Data</button>
+            <a href="https://docs.google.com/spreadsheets/d/YOUR_SHEET_ID/edit" target="_blank" class="sheets-btn">📈 View Google Sheets</a>
+        </div>
+
+        <div class="google-sheets-link">
+            <h3>📈 Real-Time Data in Google Sheets</h3>
+            <p>For the most up-to-date information, check your Google Sheets which updates automatically after each study session!</p>
+            <p><strong>Note:</strong> The data below shows local device information and may not reflect the latest activity if accessed from a different device.</p>
+        </div>
+
+        <div id="dashboard-content">
+            <!-- Dashboard content will be loaded here -->
+        </div>
+    </div>
+
+    <script>
+        function loadDashboard() {
+            const reportData = localStorage.getItem('elianaStudyReport');
+            const statsData = localStorage.getItem('elianaDriverStats');
+            
+            if (!reportData || !statsData) {
+                showNoData();
+                return;
+            }
+
+            try {
+                const report = JSON.parse(reportData);
+                const stats = JSON.parse(statsData);
+                
+                displayDashboard(report, stats);
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showNoData();
+            }
+        }
+
+        function showNoData() {
+            document.getElementById('dashboard-content').innerHTML = `
+                <div class="card">
+                    <div class="no-data">
+                        <h3>📱 No Local Study Data Available</h3>
+                        <p>This shows local device data only. For complete cross-device tracking, check your Google Sheets!</p>
+                        <br>
+                        <p>If Eliana has been studying, you can:</p>
+                        <ul style="text-align: left; margin-top: 15px;">
+                            <li>✅ Check your Google Sheets for real-time data</li>
+                            <li>📱 Access this dashboard from the same device she uses to study</li>
+                            <li>🔄 Wait for her to complete a study session to see local data</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        function displayDashboard(report, stats) {
+            const summary = report.summary;
+            const sessions = report.recentSessions || [];
+            const lastUpdated = new Date(report.lastUpdated).toLocaleString();
+
+            // Calculate study frequency
+            const today = new Date();
+            const lastStudyDate = summary.lastStudied ? new Date(summary.lastStudied) : null;
+            const daysSinceLastStudy = lastStudyDate ? 
+                Math.floor((today - lastStudyDate) / (1000 * 60 * 60 * 24)) : null;
+
+            // Determine study status
+            let studyStatus = '';
+            let statusClass = '';
+            if (!lastStudyDate) {
+                studyStatus = '🔴 Hasn\'t started studying yet';
+                statusClass = 'warning';
+            } else if (daysSinceLastStudy === 0) {
+                studyStatus = '🟢 Studied today! Great job!';
+                statusClass = 'success';
+            } else if (daysSinceLastStudy === 1) {
+                studyStatus = '🟡 Last studied yesterday';
+                statusClass = 'warning';
+            } else {
+                studyStatus = `🔴 Last studied ${daysSinceLastStudy} days ago`;
+                statusClass = 'warning';
+            }
+
+            document.getElementById('dashboard-content').innerHTML = `
+                <div class="alert ${statusClass}">
+                    <strong>${studyStatus}</strong>
+                    ${lastStudyDate ? `<br>Last study session: ${lastStudyDate.toLocaleDateString()} at ${lastStudyDate.toLocaleTimeString()}` : ''}
+                    <br><em>💡 This is local device data. Check Google Sheets for complete cross-device tracking!</em>
+                </div>
+
+                <div class="dashboard-grid">
+                    <div class="card success">
+                        <h3>📈 Overall Progress</h3>
+                        <div class="stat-large">${summary.totalQuestions}</div>
+                        <div class="stat-label">Total Questions Answered</div>
+                        <div class="stat-medium">${summary.accuracy}%</div>
+                        <div class="stat-label">Overall Accuracy</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${summary.accuracy}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="card info">
+                        <h3>⏱️ Study Time</h3>
+                        <div class="stat-large">${summary.totalStudyTime}</div>
+                        <div class="stat-label">Total Minutes Studied</div>
+                        <div class="study-streak">
+                            <div>
+                                <div class="stat-medium">${summary.todayStudyTime}</div>
+                                <div class="stat-label">Minutes Today</div>
+                            </div>
+                            <div class="streak-emoji">⏰</div>
+                        </div>
+                        <div class="study-streak">
+                            <div>
+                                <div class="stat-medium">${summary.weeklyStudyTime}</div>
+                                <div class="stat-label">Minutes This Week</div>
+                            </div>
+                            <div class="streak-emoji">📅</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>🔥 Streaks & Performance</h3>
+                        <div class="study-streak">
+                            <div>
+                                <div class="stat-large">${summary.bestStreak}</div>
+                                <div class="stat-label">Best Correct Streak</div>
+                            </div>
+                            <div class="streak-emoji">🏆</div>
+                        </div>
+                        <div class="study-streak">
+                            <div>
+                                <div class="stat-medium">${summary.sessionsToday}</div>
+                                <div class="stat-label">Sessions Today</div>
+                            </div>
+                            <div class="streak-emoji">📊</div>
+                        </div>
+                        <div class="study-streak">
+                            <div>
+                                <div class="stat-medium">${summary.sessionsThisWeek}</div>
+                                <div class="stat-label">Sessions This Week</div>
+                            </div>
+                            <div class="streak-emoji">📈</div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h3>📚 Recent Study Sessions</h3>
+                        <div class="session-list">
+                            ${sessions.length > 0 ? sessions.map(session => `
+                                <div class="session-item">
+                                    <div class="session-date">${session.date} at ${session.time}</div>
+                                    <div class="session-details">
+                                        ${session.mode} Mode • ${session.questionsAnswered} questions • ${session.accuracy}% accuracy • ${session.timeSpent} min
+                                    </div>
+                                </div>
+                            `).join('') : '<div class="no-data">No recent sessions on this device</div>'}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>💡 Study Insights</h3>
+                    ${generateInsights(summary, sessions)}
+                </div>
+
+                <div style="text-align: center; margin-top: 20px; color: #7f8c8d; font-size: 0.9em;">
+                    Local data last updated: ${lastUpdated}
+                    <br><em>For real-time cross-device data, check your Google Sheets!</em>
+                </div>
+            `;
+        }
+
+        function generateInsights(summary, sessions) {
+            let insights = [];
+
+            // Accuracy insights
+            if (summary.accuracy >= 90) {
+                insights.push('🌟 <strong>Excellent!</strong> Eliana is performing exceptionally well with ' + summary.accuracy + '% accuracy.');
+            } else if (summary.accuracy >= 80) {
+                insights.push('👍 <strong>Good progress!</strong> Eliana is doing well with ' + summary.accuracy + '% accuracy.');
+            } else if (summary.accuracy >= 70) {
+                insights.push('📚 <strong>Keep practicing!</strong> Eliana is learning steadily. Encourage more practice to improve from ' + summary.accuracy + '%.');
+            } else if (summary.totalQuestions > 0) {
+                insights.push('💪 <strong>Just getting started!</strong> Eliana needs more practice to build confidence. Current accuracy: ' + summary.accuracy + '%.');
+            }
+
+            // Study frequency insights
+            if (summary.sessionsThisWeek >= 5) {
+                insights.push('🔥 <strong>Consistent learner!</strong> Eliana has studied ' + summary.sessionsThisWeek + ' times this week - fantastic dedication!');
+            } else if (summary.sessionsThisWeek >= 3) {
+                insights.push('📈 <strong>Good routine!</strong> Eliana has ' + summary.sessionsThisWeek + ' study sessions this week.');
+            } else if (summary.sessionsThisWeek > 0) {
+                insights.push('⏰ <strong>Could use more practice!</strong> Only ' + summary.sessionsThisWeek + ' session(s) this week. Encourage daily study habits.');
+            }
+
+            // Study time insights
+            if (summary.weeklyStudyTime >= 60) {
+                insights.push('⏱️ <strong>Great time investment!</strong> ' + summary.weeklyStudyTime + ' minutes of study time this week shows real commitment.');
+            } else if (summary.weeklyStudyTime >= 30) {
+                insights.push('⏱️ <strong>Decent effort!</strong> ' + summary.weeklyStudyTime + ' minutes this week is a good start.');
+            } else if (summary.weeklyStudyTime > 0) {
+                insights.push('⏱️ <strong>More time needed!</strong> Only ' + summary.weeklyStudyTime + ' minutes this week. Suggest 10-15 minutes daily.');
+            }
+
+            // Streak insights
+            if (summary.bestStreak >= 10) {
+                insights.push('🏆 <strong>Streak champion!</strong> Best streak of ' + summary.bestStreak + ' correct answers shows strong understanding!');
+            } else if (summary.bestStreak >= 5) {
+                insights.push('🎯 <strong>Building confidence!</strong> Best streak of ' + summary.bestStreak + ' is good progress.');
+            }
+
+            // Preparation insights
+            if (summary.totalQuestions >= 100 && summary.accuracy >= 85) {
+                insights.push('🚗 <strong>Test ready!</strong> With ' + summary.totalQuestions + ' questions answered at ' + summary.accuracy + '% accuracy, Eliana is well-prepared for the driving test!');
+            } else if (summary.totalQuestions >= 50) {
+                insights.push('📖 <strong>Making progress!</strong> ' + summary.totalQuestions + ' questions completed. Encourage continued practice for test readiness.');
+            } else if (summary.totalQuestions > 0) {
+                insights.push('🌱 <strong>Getting started!</strong> Early stages of preparation. Encourage regular practice sessions.');
+            }
+
+            // Google Sheets reminder
+            insights.push('📊 <strong>Complete Picture:</strong> This dashboard shows local device data only. Check your Google Sheets for comprehensive cross-device tracking of all study sessions!');
+
+            return insights.length > 0 ? 
+                insights.map(insight => `<p style="margin-bottom: 10px;">${insight}</p>`).join('') :
+                '<p>Start studying to see personalized insights! Check Google Sheets for real-time data.</p>';
+        }
+
+        // Auto-refresh every 30 seconds when page is visible
+        let refreshInterval;
+        
+        function startAutoRefresh() {
+            refreshInterval = setInterval(() => {
+                if (!document.hidden) {
+                    loadDashboard();
+                }
+            }, 30000);
+        }
+
+        function stopAutoRefresh() {
+            if (refreshInterval) {
+                clearInterval(refreshInterval);
+            }
+        }
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopAutoRefresh();
+            } else {
+                loadDashboard();
+                startAutoRefresh();
+            }
+        });
+
+        // Initial load
+        window.onload = function() {
+            loadDashboard();
+            startAutoRefresh();
+        };
+    </script>
+</body>
+</html>
