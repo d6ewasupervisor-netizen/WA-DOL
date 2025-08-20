@@ -378,13 +378,137 @@
         let currentQuestion = 0;
         let questions = [];
         let currentMode = '';
+        // Enhanced stats tracking for parent visibility
         let stats = {
             totalQuestions: 0,
             correctAnswers: 0,
             currentStreak: 0,
             bestStreak: 0,
-            categoryStats: {}
+            categoryStats: {},
+            studySessions: [],
+            totalStudyTime: 0,
+            lastStudyDate: null,
+            dailyGoalStreak: 0
         };
+
+        // Track study session
+        function trackStudySession() {
+            const now = new Date();
+            const sessionData = {
+                date: now.toISOString().split('T')[0], // YYYY-MM-DD format
+                time: now.toLocaleTimeString(),
+                mode: currentMode,
+                questionsAnswered: 0,
+                correctAnswers: 0,
+                timeSpent: 0,
+                sessionStart: now
+            };
+            
+            // Add to current session
+            stats.currentSession = sessionData;
+        }
+
+        // End study session
+        function endStudySession() {
+            if (stats.currentSession) {
+                const endTime = new Date();
+                const timeSpent = Math.round((endTime - stats.currentSession.sessionStart) / 1000 / 60); // minutes
+                
+                stats.currentSession.timeSpent = timeSpent;
+                stats.totalStudyTime += timeSpent;
+                stats.lastStudyDate = stats.currentSession.date;
+                
+                // Add to sessions history
+                if (!stats.studySessions) stats.studySessions = [];
+                stats.studySessions.push({
+                    date: stats.currentSession.date,
+                    time: stats.currentSession.time,
+                    mode: stats.currentSession.mode,
+                    questionsAnswered: stats.currentSession.questionsAnswered,
+                    correctAnswers: stats.currentSession.correctAnswers,
+                    timeSpent: stats.currentSession.timeSpent,
+                    accuracy: stats.currentSession.questionsAnswered > 0 ? 
+                        Math.round((stats.currentSession.correctAnswers / stats.currentSession.questionsAnswered) * 100) : 0
+                });
+                
+                // Keep only last 30 sessions to manage storage
+                if (stats.studySessions.length > 30) {
+                    stats.studySessions = stats.studySessions.slice(-30);
+                }
+                
+                delete stats.currentSession;
+                saveStats();
+                
+                // Send usage data to parent dashboard
+                sendUsageData();
+            }
+        }
+
+        // Google Sheets configuration
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzL7U6ArUxGsPQ7JQE5ZTosngJnCXe8GGamq4OIjbTnIN93sOgnNz6QPjHAzklLrUnr4w/exec';
+        
+        // Send usage data to Google Sheets
+        function sendUsageData() {
+            // Create a summary for easy parent viewing
+            const today = new Date().toISOString().split('T')[0];
+            const todaySessions = stats.studySessions.filter(s => s.date === today);
+            const thisWeekSessions = stats.studySessions.filter(s => {
+                const sessionDate = new Date(s.date);
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                return sessionDate >= weekAgo;
+            });
+            
+            const summary = {
+                lastStudied: stats.lastStudyDate,
+                totalQuestions: stats.totalQuestions,
+                accuracy: stats.totalQuestions > 0 ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) : 0,
+                bestStreak: stats.bestStreak,
+                totalStudyTime: stats.totalStudyTime,
+                todayStudyTime: todaySessions.reduce((total, s) => total + s.timeSpent, 0),
+                weeklyStudyTime: thisWeekSessions.reduce((total, s) => total + s.timeSpent, 0),
+                sessionsToday: todaySessions.length,
+                sessionsThisWeek: thisWeekSessions.length
+            };
+            
+            // Store summary in localStorage with a special key for parent access
+            localStorage.setItem('elianaStudyReport', JSON.stringify({
+                lastUpdated: new Date().toISOString(),
+                summary: summary,
+                recentSessions: stats.studySessions.slice(-5) // Last 5 sessions
+            }));
+            
+            // Send to Google Sheets if current session exists
+            if (stats.currentSession && GOOGLE_SCRIPT_URL) {
+                const sessionData = {
+                    date: stats.currentSession.date,
+                    time: stats.currentSession.time,
+                    studyMode: stats.currentSession.mode,
+                    questionsAnswered: stats.currentSession.questionsAnswered,
+                    correctAnswers: stats.currentSession.correctAnswers,
+                    accuracy: stats.currentSession.questionsAnswered > 0 ? 
+                        Math.round((stats.currentSession.correctAnswers / stats.currentSession.questionsAnswered) * 100) : 0,
+                    timeSpent: stats.currentSession.timeSpent,
+                    bestStreak: stats.bestStreak,
+                    totalQuestions: stats.totalQuestions,
+                    overallAccuracy: stats.totalQuestions > 0 ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) : 0
+                };
+                
+                // Send to Google Sheets
+                fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(sessionData)
+                }).then(response => {
+                    console.log('✅ Study data sent to parent dashboard successfully!');
+                }).catch(error => {
+                    console.log('📱 Study data saved locally (Google Sheets temporarily unavailable)');
+                    // Continue normally - local storage still works
+                });
+            }
+        }
 
         // Expanded question bank with more comprehensive questions
         const questionBank = {
@@ -762,6 +886,11 @@
 
         // Show main menu
         function showMainMenu() {
+            // End session if one is active
+            if (stats.currentSession) {
+                endStudySession();
+            }
+            
             document.getElementById('mainMenu').style.display = 'grid';
             document.getElementById('categorySelector').style.display = 'none';
             document.getElementById('questionArea').style.display = 'none';
@@ -800,6 +929,7 @@
         // Start quiz
         function startQuiz() {
             currentQuestion = 0;
+            trackStudySession(); // Start tracking this session
             document.getElementById('mainMenu').style.display = 'none';
             document.getElementById('categorySelector').style.display = 'none';
             document.getElementById('questionArea').style.display = 'block';
@@ -846,11 +976,18 @@
 
             // Update stats
             stats.totalQuestions++;
+            if (stats.currentSession) {
+                stats.currentSession.questionsAnswered++;
+            }
+            
             if (selectedIndex === q.correct) {
                 stats.correctAnswers++;
                 stats.currentStreak++;
                 if (stats.currentStreak > stats.bestStreak) {
                     stats.bestStreak = stats.currentStreak;
+                }
+                if (stats.currentSession) {
+                    stats.currentSession.correctAnswers++;
                 }
                 showReward(true);
             } else {
@@ -912,6 +1049,8 @@
 
         // Show results
         function showResults() {
+            endStudySession(); // End the tracking session
+            
             const correct = questions.reduce((count, q, index) => {
                 return count + (document.querySelectorAll('.answer-btn.correct')[index] ? 1 : 0);
             }, 0);
