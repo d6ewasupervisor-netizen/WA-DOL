@@ -445,9 +445,9 @@
         }
 
         // Google Sheets configuration
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzL7U6ArUxGsPQ7JQE5ZTosngJnCXe8GGamq4OIjbTnIN93sOgnNz6QPjHAzklLrUnr4w/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx6v9i1RjgOzURjwhQ1ibjcESokhlZijpt3oPYWd3Yoaj2t5b5gPiGPzw6_gG9HvLBSeA/exec';
         
-        // Send usage data to Google Sheets
+        // Send usage data to Google Sheets using CORS-free method
         function sendUsageData() {
             // Create a summary for easy parent viewing
             const today = new Date().toISOString().split('T')[0];
@@ -478,8 +478,8 @@
                 recentSessions: stats.studySessions.slice(-5) // Last 5 sessions
             }));
             
-            // Send to Google Sheets if current session exists
-            if (stats.currentSession && GOOGLE_SCRIPT_URL) {
+            // Send to Google Sheets using CORS-free method (hidden form submission)
+            if (stats.currentSession) {
                 const sessionData = {
                     date: stats.currentSession.date,
                     time: stats.currentSession.time,
@@ -494,19 +494,38 @@
                     overallAccuracy: stats.totalQuestions > 0 ? Math.round((stats.correctAnswers / stats.totalQuestions) * 100) : 0
                 };
                 
-                // Send to Google Sheets
-                fetch(GOOGLE_SCRIPT_URL, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(sessionData)
-                }).then(response => {
-                    console.log('✅ Study data sent to parent dashboard successfully!');
-                }).catch(error => {
-                    console.log('📱 Study data saved locally (Google Sheets temporarily unavailable)');
-                    // Continue normally - local storage still works
+                // Create hidden form to submit data (bypasses CORS)
+                const form = document.createElement('form');
+                form.action = 'https://script.google.com/macros/s/AKfycbz63EwxfU02VBaEyZmOviMPzT_UUZUwVraf64xgypTSjQxrAdo4NowZv0SRt64KPCX8Xw/exec';
+                form.method = 'POST';
+                form.target = 'hidden_iframe';
+                form.style.display = 'none';
+                
+                // Add data as form fields
+                Object.keys(sessionData).forEach(key => {
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = key;
+                    input.value = sessionData[key];
+                    form.appendChild(input);
                 });
+                
+                // Create hidden iframe for response
+                let iframe = document.getElementById('hidden_iframe');
+                if (!iframe) {
+                    iframe = document.createElement('iframe');
+                    iframe.id = 'hidden_iframe';
+                    iframe.name = 'hidden_iframe';
+                    iframe.style.display = 'none';
+                    document.body.appendChild(iframe);
+                }
+                
+                // Submit form
+                document.body.appendChild(form);
+                form.submit();
+                document.body.removeChild(form);
+                
+                console.log('📊 Study data sent to parent dashboard successfully!');
             }
         }
 
